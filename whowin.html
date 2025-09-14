@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>من سيربح المليون - النسخة العراقية</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ95QpS9h0zT3I/J5Xb4Vp4oB7oFq5N1V2S4gP4E3H7r+h0E2o6D8g0g5l+g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+
+        body {
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Cairo', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            direction: rtl;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 700px;
+            background-color: #2e2e4a;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+            border: 3px solid #f8d461;
+        }
+
+        h1 {
+            color: #f8d461;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        #question-status {
+            font-size: 1.2em;
+            color: #a0a0a0;
+            margin-bottom: 5px;
+        }
+
+        #prize-display {
+            font-size: 1.5em;
+            color: #f8d461;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        #question-box {
+            background-color: #3f3d56;
+            padding: 20px;
+            border-radius: 10px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .option-btn {
+            background-color: #3f3d56;
+            color: #e0e0e0;
+            border: 2px solid #5a5a7c;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+        }
+
+        .option-btn:hover:not([disabled]) {
+            background-color: #5a5a7c;
+            transform: translateY(-2px);
+        }
+        
+        .option-btn.correct {
+            background-color: #28a745;
+            border-color: #218838;
+        }
+
+        .option-btn.wrong {
+            background-color: #dc3545;
+            border-color: #c82333;
+        }
+
+        .message-box {
+            margin-top: 20px;
+            min-height: 40px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .win-message {
+            color: #28a745;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-start, .btn-next {
+            background-color: #3498db;
+        }
+
+        .btn-start:hover, .btn-next:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            background-color: #e74c3c;
+        }
+
+        .btn-reset:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>من سيربح المليون - النسخة العراقية</h1>
+        <div id="question-status"></div>
+        <div id="prize-display"></div>
+        <div id="question-box">اضغط 'ابدأ' للعب!</div>
+        <div class="options-grid" id="options-container"></div>
+        <div class="message-box" id="message"></div>
+        <div class="controls">
+            <button id="startButton" class="btn btn-start">ابدأ</button>
+            <button id="nextButton" class="btn btn-next" style="display: none;">السؤال التالي</button>
+            <button id="resetButton" class="btn btn-reset" style="display: none;">إعادة اللعب</button>
+        </div>
+    </div>
+
+    <script>
+        const questionBox = document.getElementById('question-box');
+        const optionsContainer = document.getElementById('options-container');
+        const messageDisplay = document.getElementById('message');
+        const startButton = document.getElementById('startButton');
+        const nextButton = document.getElementById('nextButton');
+        const resetButton = document.getElementById('resetButton');
+        const prizeDisplay = document.getElementById('prize-display');
+        const questionStatus = document.getElementById('question-status');
+
+        let currentQuestionIndex = 0;
+        let gameState = 'START';
+        let shuffledQuestions = [];
+
+        // قائمة الجوائز النقدية لكل سؤال (10 أسئلة فقط)
+        const prizes = [
+            '1,000 دينار',
+            '2,000 دينار',
+            '5,000 دينار',
+            '10,000 دينار',
+            '25,000 دينار',
+            '50,000 دينار',
+            '75,000 دينار',
+            '100,000 دينار',
+            '250,000 دينار',
+            '1,000,000 دينار'
+        ];
+
+        // الأسئلة والأجوبة حول العراق (أكثر من 50 سؤال)
+        const allQuestions = [
+            {
+                question: "من هو واحد عراق؟",
+                options: ["أبو عمار", "أبو غسان", "أبو أسد", "أبو خالد"],
+                answer: "أبو أسد"
+            },
+            {
+                question: "لماذا تسمى أربيل مدينة المعارض؟",
+                options: ["لأنها تحتوي على معارض فنية", "لأنها تحتوي على معارض كتب", "لأنها تحتوي على معارض سيارات", "لأنها تحتوي على معارض أزياء"],
+                answer: "لأنها تحتوي على معارض سيارات"
+            },
+            {
+                question: "ما هو اسم النهرين الرئيسيين في العراق؟",
+                options: ["الفرات ودجلة", "النيل والفرات", "دجلة والجيحون", "الفرات واليرموك"],
+                answer: "الفرات ودجلة"
+            },
+            {
+                question: "ما هي عاصمة العراق؟",
+                options: ["البصرة", "أربيل", "بغداد", "الموصل"],
+                answer: "بغداد"
+            },
+            {
+                question: "ما هو اسم الحضارة القديمة التي نشأت في جنوب العراق؟",
+                options: ["المصرية", "السومرية", "اليونانية", "الرومانية"],
+                answer: "السومرية"
+            },
+            {
+                question: "ما هو الطبق العراقي الشعبي المصنوع من السمك المشوي؟",
+                options: ["التبسي", "الدولمة", "الكباب", "السمك المسكوف"],
+                answer: "السمك المسكوف"
+            },
+            {
+                question: "ما هو اللقب الذي يطلق على العراق؟",
+                options: ["بلاد الشام", "بلاد الرافدين", "بلاد الأهرام", "بلاد النخيل"],
+                answer: "بلاد الرافدين"
+            },
+            {
+                question: "ما هي المدينة العراقية التي يقع فيها منارة الملوية؟",
+                options: ["البصرة", "سامراء", "أربيل", "بابل"],
+                answer: "سامراء"
+            },
+            {
+                question: "من هو الشاعر العراقي الذي كتب قصيدة 'أنا وليلى'؟",
+                options: ["محمود درويش", "نزار قباني", "كاظم الساهر", "حسن المرواني"],
+                answer: "حسن المرواني"
+            },
+            {
+                question: "ما هو أقدم علم في العالم وجد في بلاد ما بين النهرين؟",
+                options: ["الكيمياء", "الفيزياء", "الفلك", "الطب"],
+                answer: "الفلك"
+            },
+            {
+                question: "ما هي المادة التي تشتهر بها مدينة النجف؟",
+                options: ["الذهب", "النفط", "الخشب", "الجلود"],
+                answer: "النفط"
+            },
+            {
+                question: "ما هو أطول نهر في العراق؟",
+                options: ["الفرات", "دجلة", "النيل", "اليرموك"],
+                answer: "الفرات"
+            },
+            {
+                question: "ما هو اسم المعركة التاريخية التي وقعت بين العراقيين والفرس في القرن السابع الميلادي؟",
+                options: ["القادسية", "صفين", "الجمل", "اليرموك"],
+                answer: "القادسية"
+            },
+            {
+                question: "ما هو أشهر طبق عراقي يتم تقديمه في عيد الأضحى؟",
+                options: ["الباجة", "المدفون", "القوزي", "البرياني"],
+                answer: "القوزي"
+            },
+            {
+                question: "ما هو اسم أكبر بحيرة طبيعية في العراق؟",
+                options: ["بحيرة ساوة", "بحيرة دوكان", "بحيرة الثرثار", "بحيرة حمرين"],
+                answer: "بحيرة الثرثار"
+            },
+            {
+                question: "ما هو اسم الرقص الشعبي الذي يشتهر به جنوب العراق؟",
+                options: ["الدبكة", "الهجع", "الخيج", "الجوبي"],
+                answer: "الهجع"
+            },
+            {
+                question: "ما هو لقب مدينة بغداد؟",
+                options: ["مدينة النخيل", "دار السلام", "مدينة الألف مئذنة", "مدينة الضباب"],
+                answer: "دار السلام"
+            },
+            {
+                question: "ما هو اسم الفيلسوف العراقي الذي يعتبر أحد مؤسسي علم الجبر؟",
+                options: ["ابن الهيثم", "الخوارزمي", "ابن النفيس", "ابن سينا"],
+                answer: "الخوارزمي"
+            },
+            {
+                question: "ما هو اسم الجبل الذي يقع في إقليم كردستان العراق ويعتبر أعلى قمة في البلاد؟",
+                options: ["جبل حمرين", "جبل سنجار", "جبل كورك", "جبل هلكرد"],
+                answer: "جبل هلكرد"
+            },
+            {
+                question: "من هو الفنان العراقي الذي لقب بـ 'الكاظم'؟",
+                options: ["محمود أنور", "كاظم الساهر", "إلهام المدفعي", "سعدون جابر"],
+                answer: "كاظم الساهر"
+            },
+            {
+                question: "ما هي العملة الرسمية للعراق؟",
+                options: ["الدينار العراقي", "الريال", "الليرة", "الدرهم"],
+                answer: "الدينار العراقي"
+            },
+            {
+                question: "ما هو اسم المتحف الوطني في بغداد الذي يضم كنوزاً أثرية من حضارات العراق القديمة؟",
+                options: ["متحف البصرة", "المتحف العراقي", "متحف التراث", "متحف بغداد"],
+                answer: "المتحف العراقي"
+            },
+            {
+                question: "ما هو الاسم القديم لمدينة الموصل؟",
+                options: ["نينوى", "أشور", "أور", "ماري"],
+                answer: "نينوى"
+            },
+            {
+                question: "ما هو اسم المضيق المائي الذي يقع بين العراق وإيران؟",
+                options: ["مضيق هرمز", "شط العرب", "قناة السويس", "مضيق باب المندب"],
+                answer: "شط العرب"
+            },
+            {
+                question: "من هو الخليفة العباسي الذي بنى مدينة بغداد؟",
+                options: ["أبو العباس السفاح", "هارون الرشيد", "أبو جعفر المنصور", "المأمون"],
+                answer: "أبو جعفر المنصور"
+            },
+            {
+                question: "ما هو أشهر نوع من التمور العراقية؟",
+                options: ["الخلاص", "البرحي", "المجهول", "الزهدي"],
+                answer: "الزهدي"
+            },
+            {
+                question: "ما هو اسم البحيرة التي تقع في شمال بغداد وتعتبر أكبر بحيرة اصطناعية في العراق؟",
+                options: ["بحيرة الحبانية", "بحيرة دوكان", "بحيرة الثرثار", "بحيرة الرزازة"],
+                answer: "بحيرة الثرثار"
+            },
+            {
+                question: "من هو الشاعر العراقي الذي اشتهر بقصيدة 'بغداد يا مدينة السلام'؟",
+                options: ["الرصافي", "الجواهري", "المتنبي", "السياب"],
+                answer: "الجواهري"
+            },
+            {
+                question: "ما هو اسم العيد الذي يحتفل به العراقيون في الربيع؟",
+                options: ["نوروز", "عيد الأضحى", "عيد الفطر", "يوم النصر"],
+                answer: "نوروز"
+            },
+            {
+                question: "ما هي المدينة العراقية التي تشتهر بصناعة الزيوت العطرية؟",
+                options: ["الموصل", "كربلاء", "النجف", "الأنبار"],
+                answer: "كربلاء"
+            },
+            {
+                question: "ما هو اسم القصر الذي يقع في مدينة بغداد ويعتبر من أبرز معالمها؟",
+                options: ["قصر العظم", "قصر الحمراء", "قصر الرشيد", "قصر الأخيضر"],
+                answer: "قصر الأخيضر"
+            },
+            {
+                question: "ما هي المدينة العراقية التي تشتهر بصناعة الحلوى التراثية 'المن والسلوى'؟",
+                options: ["السليمانية", "دهوك", "أربيل", "الموصل"],
+                answer: "الموصل"
+            },
+            {
+                question: "ما هو اسم أكبر مسجد في بغداد والذي يضم قبة كبيرة؟",
+                options: ["مسجد الكاظمية", "مسجد أبي حنيفة", "جامع الإمام الأعظم", "مسجد الخلفاء"],
+                answer: "جامع الإمام الأعظم"
+            },
+            {
+                question: "ما هو اسم أكبر حقل نفطي في العراق؟",
+                options: ["حقل كركوك", "حقل الرميلة", "حقل غرب القرنة", "حقل الزبير"],
+                answer: "حقل الرميلة"
+            },
+            {
+                question: "ما هو الاسم القديم لمدينة البصرة؟",
+                options: ["بابل", "أور", "الزبير", "أمير المؤمنين"],
+                answer: "الزبير"
+            },
+            {
+                question: "ما هو اسم الجسر الذي يربط بين جانبي مدينة بغداد؟",
+                options: ["جسر الأحرار", "جسر الجمهورية", "جسر الشهداء", "جميع ما سبق"],
+                answer: "جميع ما سبق"
+            },
+            {
+                question: "ما هو اسم المشروب العراقي الشعبي المصنوع من عصير الزبيب؟",
+                options: ["الشربت", "العرقسوس", "العنب", "الدبس"],
+                answer: "العرقسوس"
+            },
+            {
+                question: "ما هو اسم الصحراء التي تغطي جزءاً كبيراً من غرب العراق؟",
+                options: ["صحراء النقب", "الصحراء الكبرى", "الصحراء الغربية", "الصحراء السورية"],
+                answer: "الصحراء الغربية"
+            },
+            {
+                question: "ما هو الاسم الذي يطلق على مدينة الحضر الأثرية؟",
+                options: ["مدينة الشمس", "مدينة القمر", "مدينة الرياح", "مدينة التوابل"],
+                answer: "مدينة الشمس"
+            },
+            {
+                question: "ما هو اسم أشهر مغني عراقي راحل لقب بـ 'ملك العود'؟",
+                options: ["ناظم الغزالي", "ياس خضر", "منير بشير", "سعدي الحلي"],
+                answer: "منير بشير"
+            },
+            {
+                question: "ما هي المدينة العراقية التي تشتهر بصناعة الخناجر؟",
+                options: ["النجف", "الناصرية", "الموصل", "البصرة"],
+                answer: "النجف"
+            },
+            {
+                question: "ما هو اسم المدينة الأثرية التي تقع في محافظة ذي قار؟",
+                options: ["ماري", "أور", "نينوى", "بابل"],
+                answer: "أور"
+            },
+            {
+                question: "ما هي المدينة العراقية التي تعرف باسم 'أم الربيعين'؟",
+                options: ["بغداد", "أربيل", "الموصل", "كركوك"],
+                answer: "الموصل"
+            },
+            {
+                question: "ما هو الاسم القديم لمدينة البصرة؟",
+                options: ["الأبلة", "المربد", "المسيب", "الفاو"],
+                answer: "الأبلة"
+            },
+            {
+                question: "ما هو اسم الطائر الذي يعتبر رمزاً لمدينة بغداد؟",
+                options: ["الصقر", "النسر", "الغراب", "السنونو"],
+                answer: "الغراب"
+            },
+            {
+                question: "ما هو اسم أكبر محطة كهربائية في العراق؟",
+                options: ["محطة كهرباء بغداد", "محطة كهرباء بيجي", "محطة كهرباء الدورة", "محطة كهرباء الهارثة"],
+                answer: "محطة كهرباء الهارثة"
+            },
+            {
+                question: "ما هو اسم الطبق العراقي الذي يتكون من الرز واللحم والمكسرات؟",
+                options: ["الباجة", "البرياني", "القوزي", "التبسي"],
+                answer: "البرياني"
+            },
+            {
+                question: "ما هو اسم المعركة التي وقعت بين العراقيين والقوات البريطانية عام 1920؟",
+                options: ["ثورة العشرين", "ثورة 14 تموز", "حرب الخليج", "معركة القادسية"],
+                answer: "ثورة العشرين"
+            },
+            {
+                question: "ما هو اسم أشهر طبق عراقي يُطهى في عيد الفطر؟",
+                options: ["الكليجة", "الباجة", "السمك المسكوف", "الدولمة"],
+                answer: "الكليجة"
+            },
+            {
+                question: "ما هو اسم المحافظة العراقية التي تقع فيها مدينة أور الأثرية؟",
+                options: ["المثنى", "الناصرية", "ذي قار", "البصرة"],
+                answer: "ذي قار"
+            },
+            {
+                question: "من هو الرسام العراقي الذي اشتهر بلوحاته عن الحياة العراقية؟",
+                options: ["جواد سليم", "فائق حسن", "حافظ الدروبي", "جميع ما سبق"],
+                answer: "فائق حسن"
+            },
+            {
+                question: "ما هو اسم أشهر جسر في بغداد والذي يربط بين الرصافة والكرخ؟",
+                options: ["جسر الشهداء", "جسر الأئمة", "جسر الصرافية", "جسر باب المعظم"],
+                answer: "جسر الصرافية"
+            },
+            {
+                question: "ما هي المدينة العراقية التي تشتهر بوجود الأهوار؟",
+                options: ["ميسان", "العمارة", "الديوانية", "البصرة"],
+                answer: "ميسان"
+            },
+            {
+                question: "ما هو الاسم القديم لمحافظة نينوى؟",
+                options: ["آشور", "الحدباء", "أور", "ماري"],
+                answer: "الحدباء"
+            }
+        ];
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function showQuestion(qIndex) {
+            optionsContainer.innerHTML = '';
+            // عرض حالة السؤال
+            const currentQuestionNumber = qIndex + 1;
+            const remainingQuestions = prizes.length - currentQuestionNumber;
+            questionStatus.textContent = `أنت في السؤال رقم ${currentQuestionNumber} | متبقي ${remainingQuestions} أسئلة`;
+
+            // عرض السؤال الحالي
+            questionBox.textContent = shuffledQuestions[qIndex].question;
+            
+            // عرض الجائزة الحالية
+            prizeDisplay.textContent = `الجائزة: ${prizes[qIndex]}`;
+
+            // إنشاء أزرار الإجابات
+            shuffledQuestions[qIndex].options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-btn');
+                button.addEventListener('click', () => handleAnswer(option, shuffledQuestions[qIndex].answer, button));
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function handleAnswer(selectedOption, correctAnswer, button) {
+            // تعطيل جميع الأزرار بعد اختيار إجابة
+            document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+
+            if (selectedOption === correctAnswer) {
+                button.classList.add('correct');
+                messageDisplay.textContent = "إجابة صحيحة! 🎉";
+
+                currentQuestionIndex++;
+                if (currentQuestionIndex < prizes.length) {
+                    setTimeout(() => {
+                        nextQuestion();
+                    }, 1500);
+                } else {
+                    setTimeout(() => {
+                        endGame();
+                    }, 1500);
+                }
+
+            } else {
+                button.classList.add('wrong');
+                // إظهار الإجابة الصحيحة
+                document.querySelectorAll('.option-btn').forEach(btn => {
+                    if (btn.textContent === correctAnswer) {
+                        btn.classList.add('correct');
+                    }
+                });
+                messageDisplay.textContent = "إجابة خاطئة! لقد خسرت.";
+                setTimeout(() => {
+                    resetGame();
+                }, 3000);
+            }
+        }
+
+        function startGame() {
+            gameState = 'PLAYING';
+            currentQuestionIndex = 0;
+            shuffledQuestions = shuffle(allQuestions).slice(0, prizes.length);
+            startButton.style.display = 'none';
+            resetButton.style.display = 'none';
+            nextButton.style.display = 'none';
+            messageDisplay.textContent = '';
+            showQuestion(currentQuestionIndex);
+        }
+
+        function nextQuestion() {
+            messageDisplay.textContent = '';
+            showQuestion(currentQuestionIndex);
+        }
+
+        function endGame() {
+            gameState = 'GAME_OVER';
+            optionsContainer.innerHTML = '';
+            questionBox.textContent = "مبروك الفوز اتصل بابو اسد للحصول على الاموال";
+            messageDisplay.textContent = "";
+            questionStatus.style.display = 'none';
+            questionBox.classList.add('win-message');
+            resetButton.style.display = 'inline-block';
+        }
+
+        function resetGame() {
+            startButton.style.display = 'inline-block';
+            resetButton.style.display = 'none';
+            nextButton.style.display = 'none';
+            questionBox.textContent = "اضغط 'ابدأ' للعب!";
+            optionsContainer.innerHTML = '';
+            messageDisplay.textContent = '';
+            prizeDisplay.textContent = '1,000 دينار';
+            questionBox.classList.remove('win-message');
+            questionStatus.style.display = 'block';
+            questionStatus.textContent = '';
+            gameState = 'START';
+        }
+
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', resetGame);
+
+        // The next button is not really needed anymore since the game proceeds automatically
+        // or resets. I've removed its listener.
+
+        // الإعداد الأولي عند تحميل الصفحة
+        resetGame();
+
+    </script>
+</body>
+</html>
